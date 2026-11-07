@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEON PONG · Solo & Dupla</title>
+<style>
+    * { box-sizing: border-box; user-select: none; margin: 0; padding: 0; }
+
+    body {
+        min-height: 100vh;
+        background: radial-gradient(circle at 50% 30%, #1a0e2e 0%, #06070b 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Segoe UI', 'Courier New', monospace;
+        overflow: hidden;
+    }
+
+    .game-shell {
+        background: linear-gradient(145deg, #0d0a1a, #05070b);
+        padding: 22px 22px 18px;
+        border-radius: 32px;
+        box-shadow:
+            0 30px 60px rgba(0, 0, 0, 0.9),
+            inset 0 0 20px #150a28,
+            0 0 0 2px #2a1c48,
+            0 0 80px rgba(180, 80, 255, 0.25);
+        border: 1px solid #4a2a7a;
+        position: relative;
+    }
+
+    /* Botões de modo no canto superior esquerdo do canvas */
+    .mode-selector {
+        position: absolute;
+        top: 38px;
+        left: 38px;
+        display: flex;
+        gap: 8px;
+        z-index: 20;
+        background: rgba(10, 6, 20, 0.85);
+        padding: 6px;
+        border-radius: 50px;
+        border: 1px solid #4a2a7a;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.7), inset 0 0 10px rgba(120,80,200,0.2);
+        backdrop-filter: blur(6px);
+    }
+
+    .mode-btn {
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 40px;
+        padding: 6px 16px;
+        font-weight: bold;
+        font-size: 0.75rem;
+        color: #8a7aaa;
+        letter-spacing: 1.5px;
+        cursor: pointer;
+        transition: 0.15s;
+        text-transform: uppercase;
+        font-family: inherit;
+    }
+
+    .mode-btn:hover { color: #d0b0ff; }
+
+    .mode-btn.active {
+        background: #2a1a4a;
+        color: #e0c8ff;
+        border-color: #7a4acc;
+        box-shadow: 0 0 14px rgba(180, 100, 255, 0.6), inset 0 0 8px rgba(180, 100, 255, 0.3);
+        text-shadow: 0 0 8px #b060ff;
+    }
+
+    canvas {
+        display: block;
+        border-radius: 18px;
+        box-shadow:
+            0 0 0 3px #1a0e30,
+            0 0 50px rgba(180, 80, 255, 0.35),
+            inset 0 0 60px rgba(0, 0, 0, 0.9);
+        background: #08060f;
+        width: 1000px;
+        height: 620px;
+    }
+
+    .scoreboard {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 50px;
+        margin-top: 16px;
+        padding: 10px 30px;
+        background: #0a0618;
+        border-radius: 50px;
+        box-shadow: inset 0 0 15px #000, 0 6px 12px black;
+        border: 1px solid #3a1e6a;
+    }
+
+    .score-side {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .player-tag {
+        font-size: 0.85rem;
+        letter-spacing: 2px;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    .p1-tag { color: #4ad4ff; text-shadow: 0 0 12px #4ad4ff88; }
+    .p2-tag { color: #ff6bff; text-shadow: 0 0 12px #ff6bff88; }
+
+    .score-value {
+        font-size: 2rem;
+        font-weight: bold;
+        min-width: 50px;
+        text-align: center;
+        font-family: 'Courier New', monospace;
+    }
+
+    .p1-score { color: #8ce6ff; text-shadow: 0 0 20px #4ad4ff; }
+    .p2-score { color: #ffb0ff; text-shadow: 0 0 20px #ff6bff; }
+
+    .vs {
+        color: #6a4a8a;
+        font-size: 1.4rem;
+        font-weight: bold;
+        letter-spacing: 3px;
+        text-shadow: 0 0 12px #a060ff88;
+    }
+
+    .controls-hint {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 14px;
+        padding: 0 20px;
+        color: #8a7aaa;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+    }
+
+    .controls-hint span { display: flex; align-items: center; gap: 8px; }
+
+    kbd {
+        background: #1a1234;
+        border: 1px solid #4a3a6a;
+        border-radius: 6px;
+        padding: 3px 9px;
+        color: #c8b0ff;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        font-size: 0.75rem;
+        box-shadow: 0 3px 0 #0a0616, 0 4px 8px black;
+        display: inline-block;
+        min-width: 22px;
+        text-align: center;
+    }
+
+    .overlay-message {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 3rem;
+        font-weight: bold;
+        color: #fff;
+        text-shadow: 0 0 30px #b060ff, 0 0 60px #b060ff;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.4s;
+        letter-spacing: 4px;
+        z-index: 10;
+        text-align: center;
+    }
+
+    .overlay-message.show { opacity: 1; }
+
+    .pause-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 3.5rem;
+        font-weight: bold;
+        color: #ffe066;
+        text-shadow: 0 0 30px #ffaa00, 0 0 60px #ffaa00;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+        letter-spacing: 8px;
+        z-index: 11;
+        text-align: center;
+    }
+
+    .pause-overlay.show { opacity: 1; }
+
+    button.action-btn {
+        background: #1a1230;
+        border: 1px solid #4a3a6a;
+        border-radius: 40px;
+        padding: 10px 26px;
+        font-weight: bold;
+        font-size: 0.9rem;
+        color: #c8b0ff;
+        letter-spacing: 2px;
+        box-shadow: 0 6px 0 #0a0616, 0 8px 16px black;
+        cursor: pointer;
+        transition: 0.08s linear;
+        text-transform: uppercase;
+        font-family: inherit;
+    }
+
+    button.action-btn:active {
+        transform: translateY(4px);
+        box-shadow: 0 2px 0 #0a0616, 0 6px 12px black;
+    }
+
+    button.action-btn:hover { color: #e0d0ff; border-color: #6a5a9a; }
+
+    #pauseBtn {
+        background: #2c1a13;
+        border-color: #6a4a2a;
+        color: #ffcc66;
+    }
+    #pauseBtn:hover { color: #fff2a8; border-color: #aa7a3a; }
+    #pauseBtn.paused {
+        background: #1a3a1a;
+        border-color: #3a6a3a;
+        color: #b0ffb0;
+    }
+
+    .bottom-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 12px;
+        padding: 0 10px;
+        gap: 12px;
+    }
+
+    .goal-info {
+        color: #8a7aaa;
+        font-size: 0.85rem;
+        letter-spacing: 2px;
+    }
+    .goal-info b { color: #d0b0ff; }
+
+    .btn-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .power-legend {
+        display: flex;
+        gap: 16px;
+        font-size: 0.75rem;
+        color: #9a8aba;
+        letter-spacing: 1px;
+        align-items: center;
+    }
+    .power-legend .item { display: flex; align-items: center; gap: 5px; }
+
+    .ai-badge {
+        position: absolute;
+        top: 38px;
+        right: 38px;
+        background: rgba(255, 60, 60, 0.15);
+        border: 1px solid #aa3030;
+        color: #ff8080;
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        z-index: 20;
+        box-shadow: 0 0 16px rgba(255, 60, 60, 0.4);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    .ai-badge.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="game-shell">
+    <canvas id="gameCanvas" width="1000" height="620"></canvas>
+
+    <!-- Seletor de modo no canto -->
+    <div class="mode-selector">
+        <button class="mode-btn active" data-mode="solo">🤖 Solo (vs CPU)</button>
+        <button class="mode-btn" data-mode="duo">👥 Dupla</button>
+    </div>
+
+    <div class="ai-badge" id="aiBadge">🤖 CPU ATIVA</div>
+
+    <div class="overlay-message" id="overlayMsg"></div>
+    <div class="pause-overlay" id="pauseOverlay">⏸ PAUSADO</div>
+
+    <div class="scoreboard">
+        <div class="score-side">
+            <span class="player-tag p1-tag" id="p1Label">🟦 Jogador 1</span>
+            <span class="score-value p1-score" id="score1">0</span>
+        </div>
+        <span class="vs">VS</span>
+        <div class="score-side">
+            <span class="score-value p2-score" id="score2">0</span>
+            <span class="player-tag p2-tag" id="p2Label">🟪 Jogador 2</span>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <div class="controls-hint">
+            <span id="p1Controls"><kbd>W</kbd><kbd>S</kbd> J1 · <kbd>Q</kbd> poder</span>
+            <span id="p2Controls"><kbd>↑</kbd><kbd>↓</kbd> J2 · <kbd>M</kbd> poder</span>
+        </div>
+        <div class="power-legend">
+            <span class="item">🔥 Fogo</span>
+            <span class="item">❄️ Gelo</span>
+            <span class="item">🛡️ Escudo</span>
+        </div>
+        <div class="btn-group">
+            <button class="action-btn" id="pauseBtn">⏸ Pausar</button>
+            <button class="action-btn" id="resetBtn">↻ Reiniciar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const score1El = document.getElementById('score1');
+    const score2El = document.getElementById('score2');
+    const overlayMsg = document.getElementById('overlayMsg');
+    const pauseOverlay = document.getElementById('pauseOverlay');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const aiBadge = document.getElementById('aiBadge');
+    const p2Label = document.getElementById('p2Label');
+    const p2Controls = document.getElementById('p2Controls');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+
+    // ========== CONFIGURAÇÕES ==========
+    const W = 1000, H = 620;
+    const WIN_SCORE = 10;
+
+    // ========== ESTADO ==========
+    let paddle1, paddle2, ball;
+    let score1, score2;
+    let gameOver, winner;
+    let particleList;
+    let trail;
+    let rallyHits;
+    let paused = false;
+    let shakeAmount = 0;
+    let flashScreen = 0;
+    let gameMode = 'solo'; // 'solo' ou 'duo'
+
+    // IA
+    let ai = {
+        targetY: H / 2,
+        reactionTime: 0,
+        errorOffset: 0,
+        thinkTimer: 0,
+    };
+
+    let obstacles = [];
+    let powerUps = [];
+
+    // ========== CONSTANTES ==========
+    const PADDLE_W = 16;
+    const PADDLE_H = 110;
+    const PADDLE_MARGIN = 40;
+    const PADDLE_SPEED = 7.8;
+
+    const BALL_RADIUS = 11;
+    const BALL_BASE_SPEED = 6.5;
+    const BALL_MAX_SPEED = 19;
+    const BALL_SPEED_INCREMENT = 0.3;
+
+    // ========== TECLAS ==========
+    const keys = {};
+
+    // ========== INICIALIZAÇÃO ==========
+    function resetGame(fullReset) {
+        if (fullReset) {
+            score1 = 0; score2 = 0;
+            score1El.textContent = 0;
+            score2El.textContent = 0;
+        }
+        gameOver = false;
+        winner = 0;
+        paused = false;
+        shakeAmount = 0;
+        flashScreen = 0;
+        pauseBtn.textContent = '⏸ Pausar';
+        pauseBtn.classList.remove('paused');
+        pauseOverlay.classList.remove('show');
+        overlayMsg.classList.remove('show');
+        rallyHits = 0;
+        trail = [];
+        particleList = [];
+        powerUps = [];
+
+        paddle1 = {
+            x: PADDLE_MARGIN,
+            y: H / 2 - PADDLE_H / 2,
+            w: PADDLE_W,
+            h: PADDLE_H,
+            vy: 0,
+            trailY: [],
+            flash: 0,
+            powerCooldown: 0,
+            hasShield: false,
+            shieldTime: 0,
+            frozen: false, frozenTime: 0,
+        };
+        paddle2 = {
+            x: W - PADDLE_MARGIN - PADDLE_W,
+            y: H / 2 - PADDLE_H / 2,
+            w: PADDLE_W,
+            h: PADDLE_H,
+            vy: 0,
+            trailY: [],
+            flash: 0,
+            powerCooldown: 0,
+            hasShield: false,
+            shieldTime: 0,
+            frozen: false, frozenTime: 0,
+        };
+
+        // IA reset
+        ai = {
+            targetY: H / 2,
+            reactionTime: 0,
+            errorOffset: 0,
+            thinkTimer: 0,
+        };
+
+        // Obstáculos
+        obstacles = [
+            { x: W/2, y: H/2 - 180, angle: 0, length: 90, thickness: 12, speed: 0.008 },
+            { x: W/2, y: H/2,       angle: Math.PI/3, length: 90, thickness: 12, speed: -0.01 },
+            { x: W/2, y: H/2 + 180, angle: Math.PI/6, length: 90, thickness: 12, speed: 0.012 },
+        ];
+
+        resetBall(Math.random() < 0.5 ? 1 : -1);
+    }
+
+    function resetBall(direction) {
+        ball = {
+            x: W / 2,
+            y: H / 2,
+            vx: 0,
+            vy: 0,
+            radius: BALL_RADIUS,
+            speed: BALL_BASE_SPEED,
+            spin: 0,
+            lastHitBy: 0,
+            onFire: false,
+            fireTrail: [],
+        };
+        setTimeout(() => {
+            if (gameOver || paused) return;
+            const angle = (Math.random() * 0.5 - 0.25) * Math.PI;
+            ball.vx = Math.cos(angle) * ball.speed * direction;
+            ball.vy = Math.sin(angle) * ball.speed;
+        }, 500);
+    }
+
+    // ========== MODO DE JOGO ==========
+    function setMode(mode) {
+        gameMode = mode;
+        modeBtns.forEach(b => {
+            b.classList.toggle('active', b.dataset.mode === mode);
+        });
+        if (mode === 'solo') {
+            p2Label.textContent = '🤖 CPU';
+            p2Label.classList.remove('p2-tag');
+            p2Label.style.color = '#ff8080';
+            p2Label.style.textShadow = '0 0 12px #ff404088';
+            p2Controls.innerHTML = '🤖 IA controla';
+            aiBadge.classList.add('show');
+        } else {
+            p2Label.textContent = '🟪 Jogador 2';
+            p2Label.classList.add('p2-tag');
+            p2Label.style.color = '';
+            p2Label.style.textShadow = '';
+            p2Controls.innerHTML = '<kbd>↑</kbd><kbd>↓</kbd> J2 · <kbd>M</kbd> poder';
+            aiBadge.classList.remove('show');
+        }
+        resetGame(true);
+    }
+
+    // ========== PAUSA ==========
+    function togglePause() {
+        if (gameOver) return;
+        paused = !paused;
+        if (paused) {
+            pauseBtn.textContent = '▶ Despausar';
+            pauseBtn.classList.add('paused');
+            pauseOverlay.classList.add('show');
+        } else {
+            pauseBtn.textContent = '⏸ Pausar';
+            pauseBtn.classList.remove('paused');
+            pauseOverlay.classList.remove('show');
+        }
+    }
+
+    // ========== PODERES ==========
+    function activatePower(player) {
+        if (gameOver || paused) return;
+        const p = player === 1 ? paddle1 : paddle2;
+        if (p.powerCooldown > 0) return;
+
+        const powers = ['fire', 'freeze', 'shield'];
+        const choice = powers[Math.floor(Math.random() * powers.length)];
+
+        if (choice === 'fire') {
+            ball.onFire = true;
+            ball.fireTrail = [];
+            ball.fireTimer = 300;
+            spawnParticles(ball.x, ball.y, '#ff6600', 30);
+            flashScreen = 0.5;
+            shakeAmount = 8;
+        } else if (choice === 'freeze') {
+            const opponent = player === 1 ? paddle2 : paddle1;
+            opponent.frozen = true;
+            opponent.frozenTime = 90;
+            spawnParticles(opponent.x + opponent.w/2, opponent.y + opponent.h/2, '#66ccff', 30);
+        } else if (choice === 'shield') {
+            p.hasShield = true;
+            p.shieldTime = 300;
+            spawnParticles(p.x + p.w/2, p.y + p.h/2, '#66ff66', 20);
+        }
+
+        p.powerCooldown = 420;
+    }
+
+    // ========== IA (CPU) ==========
+    function updateAI() {
+        if (gameMode !== 'solo') return;
+        if (paddle2.frozen) return; // congelado não se mexe
+
+        // A IA reage de forma inteligente mas imperfeita
+        // A cada ~10 frames recalcula o alvo com base na posição prevista da bola
+        ai.thinkTimer++;
+        if (ai.thinkTimer > 8) {
+            ai.thinkTimer = 0;
+
+            // Prever onde a bola vai chegar no lado direito
+            let predictY = ball.y;
+            let predictX = ball.x;
+            let vx = ball.vx;
+            let vy = ball.vy;
+
+            if (vx > 0) {
+                // Simula a trajetória até chegar ao lado direito
+                let simX = ball.x, simY = ball.y;
+                let simVx = ball.vx, simVy = ball.vy;
+                let steps = 0;
+                while (simX < paddle2.x && steps < 400) {
+                    simX += simVx;
+                    simY += simVy;
+                    // Reflexão nas paredes
+                    if (simY - ball.radius < 0) { simY = ball.radius; simVy = -simVy; }
+                    if (simY + ball.radius > H) { simY = H - ball.radius; simVy = -simVy; }
+                    steps++;
+                }
+                predictY = simY;
+            } else {
+                // Bola indo embora: volta ao centro
+                predictY = H / 2;
+            }
+
+            // Nível de dificuldade: adiciona erro humano
+            // Quanto maior a pontuação do jogador, mais preciso
+            const difficulty = 0.5 + Math.min(0.4, score1 * 0.05);
+            const errorRange = (1 - difficulty) * 120;
+            ai.errorOffset = (Math.random() - 0.5) * errorRange;
+
+            ai.targetY = predictY + ai.errorOffset;
+        }
+
+        // Move o paddle em direção ao alvo
+        const paddleCenter = paddle2.y + paddle2.h / 2;
+        const diff = ai.targetY - paddleCenter;
+        const deadZone = 8;
+
+        let moveDir = 0;
+        if (Math.abs(diff) > deadZone) {
+            moveDir = Math.sign(diff);
+        }
+
+        // Velocidade da IA (aumenta com a dificuldade)
+        const aiSpeed = PADDLE_SPEED * (0.72 + Math.min(0.25, score1 * 0.03));
+        paddle2.y += moveDir * aiSpeed;
+        paddle2.vy = moveDir * aiSpeed;
+        paddle2.y = Math.max(0, Math.min(H - paddle2.h, paddle2.y));
+    }
+
+    // ========== COLISÃO AABB ==========
+    function ballHitsPaddle(paddle) {
+        const closestX = Math.max(paddle.x, Math.min(ball.x, paddle.x + paddle.w));
+        const closestY = Math.max(paddle.y, Math.min(ball.y, paddle.y + paddle.h));
+        const dx = ball.x - closestX;
+        const dy = ball.y - closestY;
+        return (dx * dx + dy * dy) < ball.radius * ball.radius;
+    }
+
+    function ballHitsObstacle(obs) {
+        const halfL = obs.length / 2;
+        const cosA = Math.cos(obs.angle);
+        const sinA = Math.sin(obs.angle);
+        const x1 = obs.x - cosA * halfL;
+        const y1 = obs.y - sinA * halfL;
+        const x2 = obs.x + cosA * halfL;
+        const y2 = obs.y + sinA * halfL;
+
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const len2 = dx*dx + dy*dy;
+        let t = ((ball.x - x1) * dx + (ball.y - y1) * dy) / len2;
+        t = Math.max(0, Math.min(1, t));
+        const projX = x1 + t * dx;
+        const projY = y1 + t * dy;
+        const distX = ball.x - projX;
+        const distY = ball.y - projY;
+        const dist = Math.hypot(distX, distY);
+
+        if (dist < ball.radius + obs.thickness / 2) {
+            const nx = distX / (dist || 1);
+            const ny = distY / (dist || 1);
+            const dot = ball.vx * nx + ball.vy * ny;
+            ball.vx -= 2 * dot * nx;
+            ball.vy -= 2 * dot * ny;
+            const push = ball.radius + obs.thickness / 2 - dist + 2;
+            ball.x += nx * push;
+            ball.y += ny * push;
+            spawnParticles(projX, projY, '#b060ff', 10);
+            shakeAmount = 5;
+            return true;
+        }
+        return false;
+    }
+
+    function spawnParticles(x, y, color, count) {
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1.5 + Math.random() * 5;
+            particleList.push({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 1,
+                decay: 0.02 + Math.random() * 0.03,
+                size: 1.5 + Math.random() * 3.5,
+                color: color,
+            });
+        }
+    }
+
+    function spawnPowerUp() {
+        if (powerUps.length >= 2) return;
+        powerUps.push({
+            x: 250 + Math.random() * 500,
+            y: 80 + Math.random() * 460,
+            radius: 18,
+            life: 600,
+            bob: Math.random() * Math.PI * 2,
+            type: ['fire', 'freeze', 'shield'][Math.floor(Math.random() * 3)],
+        });
+    }
+
+    // ========== ATUALIZAÇÃO ==========
+    function update() {
+        updateParticles();
+
+        if (shakeAmount > 0) shakeAmount *= 0.9;
+        if (flashScreen > 0) flashScreen *= 0.9;
+
+        if (!paused && !gameOver) {
+            if (paddle1.powerCooldown > 0) paddle1.powerCooldown--;
+            if (paddle2.powerCooldown > 0) paddle2.powerCooldown--;
+            if (paddle1.hasShield) { paddle1.shieldTime--; if (paddle1.shieldTime <= 0) paddle1.hasShield = false; }
+            if (paddle2.hasShield) { paddle2.shieldTime--; if (paddle2.shieldTime <= 0) paddle2.hasShield = false; }
+            if (paddle1.frozen) { paddle1.frozenTime--; if (paddle1.frozenTime <= 0) paddle1.frozen = false; }
+            if (paddle2.frozen) { paddle2.frozenTime--; if (paddle2.frozenTime <= 0) paddle2.frozen = false; }
+
+            if (ball.onFire) {
+                ball.fireTimer = (ball.fireTimer || 300) - 1;
+                if (ball.fireTimer <= 0) ball.onFire = false;
+            }
+
+            for (let i = powerUps.length - 1; i >= 0; i--) {
+                powerUps[i].life--;
+                powerUps[i].bob += 0.05;
+                const d = Math.hypot(ball.x - powerUps[i].x, ball.y - powerUps[i].y);
+                if (d < ball.radius + powerUps[i].radius) {
+                    const owner = ball.lastHitBy || 1;
+                    const p = owner === 1 ? paddle1 : paddle2;
+                    if (powerUps[i].type === 'fire') {
+                        ball.onFire = true;
+                        ball.fireTimer = 300;
+                        spawnParticles(ball.x, ball.y, '#ff6600', 25);
+                    } else if (powerUps[i].type === 'freeze') {
+                        const opp = owner === 1 ? paddle2 : paddle1;
+                        opp.frozen = true; opp.frozenTime = 90;
+                        spawnParticles(opp.x + opp.w/2, opp.y + opp.h/2, '#66ccff', 20);
+                    } else if (powerUps[i].type === 'shield') {
+                        p.hasShield = true; p.shieldTime = 300;
+                        spawnParticles(p.x + p.w/2, p.y + p.h/2, '#66ff66', 20);
+                    }
+                    powerUps.splice(i, 1);
+                    continue;
+                }
+                if (powerUps[i].life <= 0) powerUps.splice(i, 1);
+            }
+
+            if (Math.random() < 0.005 && powerUps.length < 2) spawnPowerUp();
+        }
+
+        if (gameOver || paused) return;
+
+        // ===== Movimento do Jogador 1 =====
+        let p1vy = 0;
+        if (keys['w'] && !paddle1.frozen) p1vy -= PADDLE_SPEED;
+        if (keys['s'] && !paddle1.frozen) p1vy += PADDLE_SPEED;
+        paddle1.y += p1vy;
+        paddle1.vy = p1vy;
+        paddle1.y = Math.max(0, Math.min(H - paddle1.h, paddle1.y));
+
+        // ===== Movimento do Jogador 2 =====
+        if (gameMode === 'duo') {
+            // Controle humano
+            let p2vy = 0;
+            if (keys['arrowup'] && !paddle2.frozen) p2vy -= PADDLE_SPEED;
+            if (keys['arrowdown'] && !paddle2.frozen) p2vy += PADDLE_SPEED;
+            paddle2.y += p2vy;
+            paddle2.vy = p2vy;
+            paddle2.y = Math.max(0, Math.min(H - paddle2.h, paddle2.y));
+        } else {
+            // IA
+            updateAI();
+        }
+
+        // Rastros
+        paddle1.trailY.unshift(paddle1.y);
+        if (paddle1.trailY.length > 8) paddle1.trailY.pop();
+        paddle2.trailY.unshift(paddle2.y);
+        if (paddle2.trailY.length > 8) paddle2.trailY.pop();
+
+        for (let obs of obstacles) obs.angle += obs.speed;
+
+        // Movimento da bola
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+
+        trail.push({ x: ball.x, y: ball.y, life: 1, onFire: ball.onFire });
+        if (trail.length > 22) trail.shift();
+        for (let t of trail) t.life *= 0.93;
+
+        if (ball.onFire) {
+            ball.fireTrail.push({ x: ball.x, y: ball.y, life: 1 });
+            if (ball.fireTrail.length > 15) ball.fireTrail.shift();
+            for (let f of ball.fireTrail) f.life *= 0.9;
+        }
+
+        // Paredes
+        if (ball.y - ball.radius <= 0) {
+            ball.y = ball.radius;
+            ball.vy = -ball.vy;
+            ball.spin *= 0.8;
+            spawnParticles(ball.x, ball.y, ball.onFire ? '#ff6600' : '#4ad4ff', 8);
+        }
+        if (ball.y + ball.radius >= H) {
+            ball.y = H - ball.radius;
+            ball.vy = -ball.vy;
+            ball.spin *= 0.8;
+            spawnParticles(ball.x, ball.y, ball.onFire ? '#ff6600' : '#4ad4ff', 8);
+        }
+
+        // Obstáculos
+        for (let obs of obstacles) ballHitsObstacle(obs);
+
+        // Paddles
+        if (ball.vx < 0 && ballHitsPaddle(paddle1)) {
+            if (paddle1.hasShield) {
+                ball.speed = Math.min(BALL_MAX_SPEED, ball.speed + 1.5);
+                paddle1.hasShield = false;
+                spawnParticles(ball.x, ball.y, '#66ff66', 25);
+            }
+            handlePaddleCollision(paddle1, 1);
+        }
+        if (ball.vx > 0 && ballHitsPaddle(paddle2)) {
+            if (paddle2.hasShield) {
+                ball.speed = Math.min(BALL_MAX_SPEED, ball.speed + 1.5);
+                paddle2.hasShield = false;
+                spawnParticles(ball.x, ball.y, '#66ff66', 25);
+            }
+            handlePaddleCollision(paddle2, -1);
+        }
+
+        // Pontuação
+        if (ball.x - ball.radius < -20) {
+            score2++;
+            score2El.textContent = score2;
+            spawnParticles(0, ball.y, '#ff6bff', 25);
+            shakeAmount = 12;
+            flashScreen = 0.6;
+            checkWin();
+            if (!gameOver) resetBall(1);
+        } else if (ball.x + ball.radius > W + 20) {
+            score1++;
+            score1El.textContent = score1;
+            spawnParticles(W, ball.y, '#4ad4ff', 25);
+            shakeAmount = 12;
+            flashScreen = 0.6;
+            checkWin();
+            if (!gameOver) resetBall(-1);
+        }
+    }
+
+    function handlePaddleCollision(paddle, dir) {
+        if (dir === 1) {
+            ball.x = paddle.x + paddle.w + ball.radius;
+        } else {
+            ball.x = paddle.x - ball.radius;
+        }
+
+        ball.lastHitBy = dir === 1 ? 1 : 2;
+        ball.speed = Math.min(BALL_MAX_SPEED, ball.speed + BALL_SPEED_INCREMENT);
+
+        const relativeY = (ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2);
+        const clampedRelative = Math.max(-1, Math.min(1, relativeY));
+
+        const maxAngle = Math.PI / 3;
+        const angle = clampedRelative * maxAngle;
+
+        const paddleVy = paddle.vy;
+        ball.spin = paddleVy * 0.06;
+
+        ball.vx = dir * Math.cos(angle) * ball.speed;
+        ball.vy = Math.sin(angle) * ball.speed + ball.spin;
+
+        const mag = Math.hypot(ball.vx, ball.vy);
+        if (mag > 0) {
+            const targetSpeed = ball.speed;
+            ball.vx = (ball.vx / mag) * targetSpeed;
+            ball.vy = (ball.vy / mag) * targetSpeed;
+        }
+
+        rallyHits++;
+
+        let color = dir === 1 ? '#4ad4ff' : '#ff6bff';
+        if (ball.onFire) color = '#ffaa00';
+        spawnParticles(ball.x, ball.y, color, 14);
+
+        paddle.flash = 1;
+        shakeAmount = 4;
+    }
+
+    function updateParticles() {
+        for (let i = particleList.length - 1; i >= 0; i--) {
+            const p = particleList[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vx *= 0.96;
+            p.vy *= 0.96;
+            p.life -= p.decay;
+            if (p.life <= 0) particleList.splice(i, 1);
+        }
+        if (paddle1 && paddle1.flash) paddle1.flash *= 0.88;
+        if (paddle2 && paddle2.flash) paddle2.flash *= 0.88;
+    }
+
+    function checkWin() {
+        if (score1 >= WIN_SCORE) {
+            gameOver = true;
+            winner = 1;
+            const txt = gameMode === 'solo'
+                ? '🏆 VOCÊ VENCEU A CPU! 🏆'
+                : '🟦 JOGADOR 1 VENCEU! 🟦';
+            showOverlay(txt, '#4ad4ff');
+        } else if (score2 >= WIN_SCORE) {
+            gameOver = true;
+            winner = 2;
+            const txt = gameMode === 'solo'
+                ? '💀 A CPU VENCEU! 💀'
+                : '🟪 JOGADOR 2 VENCEU! 🟪';
+            const color = gameMode === 'solo' ? '#ff6666' : '#ff6bff';
+            showOverlay(txt, color);
+        }
+    }
+
+    function showOverlay(text, color) {
+        overlayMsg.textContent = text;
+        overlayMsg.style.color = color;
+        overlayMsg.style.textShadow = `0 0 30px ${color}, 0 0 60px ${color}`;
+        overlayMsg.classList.add('show');
+    }
+
+    // ========== DESENHO ==========
+    function draw() {
+        ctx.save();
+        if (shakeAmount > 0.5) {
+            ctx.translate((Math.random() - 0.5) * shakeAmount, (Math.random() - 0.5) * shakeAmount);
+        }
+
+        const bg = ctx.createRadialGradient(W/2, H/2, 100, W/2, H/2, 700);
+        bg.addColorStop(0, '#0e0a1e');
+        bg.addColorStop(1, '#05040a');
+        ctx.fillStyle = bg;
+        ctx.fillRect(-20, -20, W+40, H+40);
+
+        ctx.strokeStyle = 'rgba(120, 80, 200, 0.08)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < W; i += 50) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke();
+        }
+        for (let i = 0; i < H; i += 50) {
+            ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(W, i); ctx.stroke();
+        }
+
+        ctx.setLineDash([12, 18]);
+        ctx.strokeStyle = 'rgba(180, 100, 255, 0.3)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(W / 2, 0);
+        ctx.lineTo(W / 2, H);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.beginPath();
+        ctx.arc(W / 2, H / 2, 80, 0, 2 * Math.PI);
+        ctx.strokeStyle = 'rgba(180, 100, 255, 0.2)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Obstáculos
+        for (let obs of obstacles) {
+            ctx.save();
+            ctx.translate(obs.x, obs.y);
+            ctx.rotate(obs.angle);
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = '#b060ff';
+            ctx.fillStyle = '#7a3acc';
+            ctx.beginPath();
+            ctx.roundRect(-obs.length/2, -obs.thickness/2, obs.length, obs.thickness, obs.thickness/2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(220, 180, 255, 0.6)';
+            ctx.beginPath();
+            ctx.roundRect(-obs.length/2 + 4, -obs.thickness/2 + 3, obs.length - 8, 3, 2);
+            ctx.fill();
+            ctx.restore();
+        }
+        ctx.shadowBlur = 0;
+
+        // Rastro da bola
+        for (let i = 0; i < trail.length; i++) {
+            const t = trail[i];
+            const alpha = t.life * 0.5 * (i / trail.length);
+            ctx.beginPath();
+            ctx.arc(t.x, t.y, ball ? ball.radius * (i / trail.length) * 0.9 : 0, 0, 2 * Math.PI);
+            ctx.fillStyle = t.onFire
+                ? `rgba(255, 140, 0, ${alpha})`
+                : `rgba(160, 120, 255, ${alpha})`;
+            ctx.fill();
+        }
+
+        if (ball && ball.onFire) {
+            for (let f of ball.fireTrail) {
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, ball.radius * f.life * 1.4, 0, 2 * Math.PI);
+                ctx.fillStyle = `rgba(255, 100, 0, ${f.life * 0.7})`;
+                ctx.shadowBlur = 25;
+                ctx.shadowColor = '#ff6600';
+                ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // Power-ups
+        for (let pu of powerUps) {
+            const bob = Math.sin(pu.bob) * 5;
+            const alpha = pu.life > 120 ? 1 : pu.life / 120;
+            ctx.globalAlpha = alpha;
+            const colors = { fire: '#ff6600', freeze: '#66ccff', shield: '#66ff66' };
+            const icons = { fire: '🔥', freeze: '❄️', shield: '🛡️' };
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = colors[pu.type];
+            ctx.beginPath();
+            ctx.arc(pu.x, pu.y + bob, pu.radius + 4, 0, 2 * Math.PI);
+            ctx.strokeStyle = colors[pu.type];
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(pu.x, pu.y + bob, pu.radius, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(20, 10, 40, 0.85)';
+            ctx.fill();
+            ctx.font = '20px "Segoe UI"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#fff';
+            ctx.fillText(icons[pu.type], pu.x, pu.y + bob + 1);
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+            ctx.globalAlpha = 1;
+        }
+        ctx.shadowBlur = 0;
+
+        drawPaddle(paddle1, '#4ad4ff');
+        drawPaddle(paddle2, gameMode === 'solo' ? '#ff6b6b' : '#ff6bff');
+
+        drawBall();
+
+        for (let p of particleList) {
+            ctx.globalAlpha = p.life;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * p.life, 0, 2 * Math.PI);
+            ctx.fillStyle = p.color;
+            ctx.shadowBlur = 14;
+            ctx.shadowColor = p.color;
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+
+        ctx.font = 'bold 180px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(74, 212, 255, 0.05)';
+        ctx.fillText(score1, W / 2 - 180, H / 2 + 60);
+        ctx.fillStyle = gameMode === 'solo' ? 'rgba(255, 100, 100, 0.05)' : 'rgba(255, 107, 255, 0.05)';
+        ctx.fillText(score2, W / 2 + 180, H / 2 + 60);
+        ctx.textAlign = 'left';
+
+        drawPowerCooldown(paddle1, 'Q', 60, H - 50, '#4ad4ff');
+        if (gameMode === 'duo') {
+            drawPowerCooldown(paddle2, 'M', W - 60, H - 50, '#ff6bff');
+        } else {
+            // CPU: mostra indicador diferente
+            ctx.beginPath();
+            ctx.arc(W - 60, H - 50, 26, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(10, 6, 20, 0.85)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 100, 100, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.font = 'bold 16px "Segoe UI"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#ff8080';
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = '#ff4040';
+            ctx.fillText('🤖', W - 60, H - 49);
+            ctx.shadowBlur = 0;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+        }
+
+        if (flashScreen > 0.02) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${flashScreen * 0.3})`;
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        if (paused && !gameOver) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        ctx.restore();
+    }
+
+    function drawPowerCooldown(paddle, keyLabel, x, y, color) {
+        const cd = paddle.powerCooldown;
+        const maxCd = 420;
+        const progress = 1 - (cd / maxCd);
+
+        ctx.beginPath();
+        ctx.arc(x, y, 26, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(10, 6, 20, 0.85)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(120, 80, 200, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        if (progress > 0) {
+            ctx.beginPath();
+            ctx.arc(x, y, 26, -Math.PI/2, -Math.PI/2 + Math.PI * 2 * progress);
+            ctx.strokeStyle = cd > 0 ? '#555' : color;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        ctx.font = 'bold 18px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = cd > 0 ? '#555' : color;
+        ctx.shadowBlur = cd > 0 ? 0 : 15;
+        ctx.shadowColor = color;
+        ctx.fillText(keyLabel, x, y + 1);
+        ctx.shadowBlur = 0;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+    }
+
+    function drawPaddle(p, color) {
+        for (let i = p.trailY.length - 1; i >= 0; i--) {
+            const alpha = (1 - i / p.trailY.length) * 0.15;
+            ctx.beginPath();
+            ctx.roundRect(p.x, p.trailY[i], p.w, p.h, 8);
+            ctx.fillStyle = color;
+            ctx.globalAlpha = alpha;
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        const grad = ctx.createLinearGradient(p.x, p.y, p.x + p.w, p.y);
+        grad.addColorStop(0, color);
+        grad.addColorStop(1, shadeColor(color, -40));
+
+        ctx.shadowBlur = 28;
+        ctx.shadowColor = color;
+
+        ctx.beginPath();
+        ctx.roundRect(p.x, p.y, p.w, p.h, 8);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        if (p.flash && p.flash > 0.02) {
+            ctx.beginPath();
+            ctx.roundRect(p.x - 3, p.y - 3, p.w + 6, p.h + 6, 10);
+            ctx.fillStyle = `rgba(255,255,255,${p.flash * 0.8})`;
+            ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.roundRect(p.x + 3, p.y + 5, p.w - 6, p.h - 10, 5);
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.fill();
+
+        if (p.hasShield) {
+            ctx.beginPath();
+            ctx.roundRect(p.x - 6, p.y - 6, p.w + 12, p.h + 12, 12);
+            ctx.strokeStyle = `rgba(100, 255, 100, ${0.5 + Math.sin(Date.now() * 0.01) * 0.3})`;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([6, 6]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.font = '18px "Segoe UI"';
+            ctx.fillStyle = '#66ff66';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#66ff66';
+            ctx.fillText('🛡️', p.x + p.w/2 - 10, p.y - 12);
+        }
+
+        if (p.frozen) {
+            ctx.beginPath();
+            ctx.roundRect(p.x - 4, p.y - 4, p.w + 8, p.h + 8, 10);
+            ctx.strokeStyle = '#66ccff';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.font = '20px "Segoe UI"';
+            ctx.fillStyle = '#aaddff';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#66ccff';
+            ctx.fillText('❄️', p.x + p.w/2 - 10, p.y - 12);
+        }
+
+        ctx.shadowBlur = 0;
+    }
+
+    function drawBall() {
+        if (!ball) return;
+        ctx.shadowBlur = ball.onFire ? 60 : 40;
+        ctx.shadowColor = ball.onFire ? '#ff6600' : '#ffffff';
+
+        const grad = ctx.createRadialGradient(
+            ball.x - 3, ball.y - 3, 1,
+            ball.x, ball.y, ball.radius
+        );
+        if (ball.onFire) {
+            grad.addColorStop(0, '#fff5b0');
+            grad.addColorStop(0.4, '#ffaa00');
+            grad.addColorStop(1, '#cc3300');
+        } else {
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.5, '#d0e8ff');
+            grad.addColorStop(1, '#6090c0');
+        }
+
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.radius, 0, 2 * Math.PI);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(ball.x - 3, ball.y - 3, ball.radius * 0.3, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+    }
+
+    function shadeColor(color, percent) {
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        let R = (num >> 16) + amt;
+        let G = (num >> 8 & 0x00FF) + amt;
+        let B = (num & 0x0000FF) + amt;
+        R = Math.max(0, Math.min(255, R));
+        G = Math.max(0, Math.min(255, G));
+        B = Math.max(0, Math.min(255, B));
+        return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    }
+
+    // ========== LOOP ==========
+    function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    // ========== CONTROLES ==========
+    window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'w') keys['w'] = true;
+        if (k === 's') keys['s'] = true;
+        if (k === 'arrowup') keys['arrowup'] = true;
+        if (k === 'arrowdown') keys['arrowdown'] = true;
+        if (k === 'q') activatePower(1);
+        if (k === 'm' && gameMode === 'duo') activatePower(2);
+        if (k === ' ' || k === 'p') {
+            e.preventDefault();
+            togglePause();
+        }
+        if (['w','s','arrowup','arrowdown','q','m'].includes(k)) {
+            e.preventDefault();
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'w') keys['w'] = false;
+        if (k === 's') keys['s'] = false;
+        if (k === 'arrowup') keys['arrowup'] = false;
+        if (k === 'arrowdown') keys['arrowdown'] = false;
+    });
+
+    window.addEventListener('blur', () => {
+        keys['w'] = false;
+        keys['s'] = false;
+        keys['arrowup'] = false;
+        keys['arrowdown'] = false;
+    });
+
+    pauseBtn.addEventListener('click', togglePause);
+    document.getElementById('resetBtn').addEventListener('click', () => resetGame(true));
+
+    // Botões de modo
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            setMode(btn.dataset.mode);
+        });
+    });
+
+    // Helper roundRect
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        if (w < 2 * r) r = w / 2;
+        if (h < 2 * r) r = h / 2;
+        this.moveTo(x + r, y);
+        this.lineTo(x + w - r, y);
+        this.quadraticCurveTo(x + w, y, x + w, y + r);
+        this.lineTo(x + w, y + h - r);
+        this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        this.lineTo(x + r, y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - r);
+        this.lineTo(x, y + r);
+        this.quadraticCurveTo(x, y, x + r, y);
+        return this;
+    };
+
+    // Inicia
+    resetGame(true);
+    loop();
+})();
+</script>
+</body>
+</html>
